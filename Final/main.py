@@ -520,7 +520,7 @@ if __name__ == "__main__":
     print("\n🚀 Multi-Model Vision Pipeline with Gemini Display\n")
     
     # IMPORTANT: Replace with your actual Gemini API key
-    GEMINI_API_KEY = "AIzaSyCKlUQpeuLi5sfS149KPh1cbgbAqTmLsJI"  # Get from https://makersuite.google.com/app/apikey
+    GEMINI_API_KEY = "AIzaSyC4Pzh3_FAmfrKfw85eqrEEs0UanEBJITk"  # Get from https://makersuite.google.com/app/apikey
     
     # Initialize pipeline with Gemini integration
     pipeline = ModelPipeline(
