@@ -51,7 +51,7 @@ class FaceRecognitionModel(BaseModel):
         embeddings, labels, label_map = [], [], {}
         
         if not os.path.exists(self.dataset_dir):
-            print(f"⚠️ Dataset directory '{self.dataset_dir}' not found")
+            print(f"Dataset directory '{self.dataset_dir}' not found")
             return np.array([]), np.array([]), {}
         
         for i, person in enumerate(os.listdir(self.dataset_dir)):
@@ -95,11 +95,11 @@ class FaceRecognitionModel(BaseModel):
             print(f"   Loading dataset embeddings from {self.dataset_dir}...")
             self.dataset_embs, self.dataset_labels, self.label_map = self.load_dataset_embeddings()
             if len(self.dataset_embs) > 0:
-                print(f"✅ {self.name}: {len(self.dataset_embs)} embeddings, {len(self.label_map)} identities")
+                print(f" {self.name}: {len(self.dataset_embs)} embeddings, {len(self.label_map)} identities")
             else:
-                print(f"✅ {self.name}: Detection only")
+                print(f" {self.name}: Detection only")
         except Exception as e:
-            print(f"⚠️ Failed to load {self.name}: {e}")
+            print(f" Failed to load {self.name}: {e}")
             self.enabled = False
     
     def predict(self, frame: np.ndarray) -> Dict[str, Any]:
@@ -159,9 +159,9 @@ class HARModel(BaseModel):
             self.model = AutoModelForImageClassification.from_pretrained(self.model_name)
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
             self.model.to(self.device)
-            print(f"✅ {self.name} loaded on {self.device.upper()}")
+            print(f" {self.name} loaded on {self.device.upper()}")
         except Exception as e:
-            print(f"⚠️ Failed to load {self.name}: {e}")
+            print(f" Failed to load {self.name}: {e}")
             self.enabled = False
     
     def predict(self, frame: np.ndarray) -> Dict[str, Any]:
@@ -199,9 +199,9 @@ class BackgroundRecognitionModel(BaseModel):
                 model=self.model_name,
                 device=self.device
             )
-            print(f"✅ {self.name} loaded successfully")
+            print(f" {self.name} loaded successfully")
         except Exception as e:
-            print(f"⚠️ Failed to load {self.name}: {e}")
+            print(f" Failed to load {self.name}: {e}")
             self.enabled = False
     
     def predict(self, frame: np.ndarray) -> Dict[str, Any]:
@@ -217,7 +217,7 @@ class BackgroundRecognitionModel(BaseModel):
             else:
                 return {"scene": "Unknown", "confidence": 0.0}
         except Exception as e:
-            print(f"⚠️ Background prediction failed: {e}")
+            print(f" Background prediction failed: {e}")
             return {"scene": "Error", "confidence": 0.0}
     
     def draw(self, frame: np.ndarray, prediction: Dict[str, Any]) -> np.ndarray:
@@ -229,43 +229,29 @@ class BackgroundRecognitionModel(BaseModel):
 
 
 class GeminiContextBuilder:
-    """Handles Gemini API calls to build context from detection data"""
+
     
     def __init__(self, api_key: str):
-        """
-        Initialize Gemini API client
-        
-        Args:
-            api_key: Your Google Gemini API key
-        """
+
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-2.0-flash')
         
     def build_context(self, detection_data: Dict[str, Any]) -> str:
-        """
-        Send detection data to Gemini and get contextual analysis
-        
-        Args:
-            detection_data: Dictionary containing face, activity, and scene data
-            
-        Returns:
-            Contextual analysis string from Gemini
-        """
+
         try:
             prompt = self._create_prompt(detection_data)
             response = self.model.generate_content(prompt)
             return response.text
         except Exception as e:
-            print(f"⚠️ Gemini API error: {e}")
+            print(f" Gemini API error: {e}")
             return f"Error: {str(e)}"
     
     def _create_prompt(self, data: Dict[str, Any]) -> str:
-        """Create a descriptive prompt from detection data"""
         faces = data.get('faces', [])
         activity = data.get('activity', {})
         scene = data.get('scene', {})
         
-       # prompt = "Provide a brief 2-3 sentence contextual analysis:\n\n"
+
 
         prompt = """You are an assistive AI for visually impaired users. Given the detected scene elements, objects, and actions, generate a 1–2 line natural audio description that quickly tells the user what’s happening around them.Keep it clear, calm, and real-time suitable (like something that could be spoken through earphones). Avoid unnecessary details.\n\n"""
         
@@ -299,23 +285,23 @@ class ModelPipeline:
         self.use_ip_cam = use_ip_cam
         self.camera_source = ip_cam_url if use_ip_cam else camera_source
         self.cap = None
-        self.frame_skip = 15  # Process every 15th frame (~2 times per second at 30fps)
+        self.frame_skip = 15  
         self.frame_count = 0
         self.cached_predictions = {}
         
-        # Snapshot settings
+  
         self.snapshot_dir = snapshot_dir
-        self.snapshot_interval = 7.0  # seconds - more reasonable for Gemini analysis
+        self.snapshot_interval = 7.0 
         self.last_snapshot_time = time.time()
         
-        # Gemini integration
+    
         self.gemini_api_key = gemini_api_key
         self.gemini_builder = None
         self.current_context = "Waiting for first analysis..."
         
         if gemini_api_key:
             self.gemini_builder = GeminiContextBuilder(gemini_api_key)
-            print("✅ Gemini API integration enabled")
+            print(" Gemini API integration enabled")
         
         # Create snapshot directory
         os.makedirs(snapshot_dir, exist_ok=True)
@@ -335,13 +321,13 @@ class ModelPipeline:
         if not self.use_ip_cam:
             self.cap.set(3, width)
             self.cap.set(4, height)
-        print("✅ Camera initialized")
+        print(" Camera initialized")
     
     def _prepare_detection_data(self) -> Dict[str, Any]:
-        """Prepare current predictions for Gemini"""
+
         data = {}
         
-        # Add face recognition data
+
         face_pred = self.cached_predictions.get("Face Recognition")
         if face_pred:
             data["faces"] = [
@@ -352,7 +338,6 @@ class ModelPipeline:
                 for f in face_pred.get("faces", [])
             ]
         
-        # Add activity recognition data
         activity_pred = self.cached_predictions.get("Activity Recognition")
         if activity_pred:
             data["activity"] = {
@@ -371,38 +356,37 @@ class ModelPipeline:
         return data
     
     def _save_snapshot(self, frame: np.ndarray):
-        """Save current frame as snapshot"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = os.path.join(self.snapshot_dir, f"snapshot_{timestamp}.jpg")
         
         try:
             cv2.imwrite(filename, frame)
-            print(f"📸 Snapshot saved: {filename}")
+            print(f" Snapshot saved: {filename}")
         except Exception as e:
-            print(f"⚠️ Failed to save snapshot: {e}")
+            print(f" Failed to save snapshot: {e}")
     
     def _get_gemini_context(self, frame: np.ndarray):
-        """Get Gemini context and save snapshot"""
+
         if not self.gemini_builder:
             return
         
         try:
-            # Save snapshot
+  
             self._save_snapshot(frame)
             
-            # Get detection data
+
             detection_data = self._prepare_detection_data()
             
-            # Get context from Gemini (show loading message)
+  
             self.current_context = "⏳ Analyzing scene with Gemini..."
-            print("🤖 Requesting Gemini analysis...")
+            print(" Requesting Gemini analysis...")
             
             context = self.gemini_builder.build_context(detection_data)
             self.current_context = context
-            print(f"🤖 Context: {context}")
+            print(f" Context: {context}")
             
         except Exception as e:
-            print(f"⚠️ Failed to get Gemini context: {e}")
+            print(f" Failed to get Gemini context: {e}")
             self.current_context = f"Error: {str(e)}"
     
     def _draw_context_panel(self, frame: np.ndarray) -> np.ndarray:
@@ -445,7 +429,7 @@ class ModelPipeline:
         cv2.addWeighted(overlay, 0.7, frame, 0.3, 0, frame)
         
         # Draw title
-        cv2.putText(frame, "🤖 Gemini Analysis:", (padding, height - panel_height + 20),
+        cv2.putText(frame, " Gemini Analysis:", (padding, height - panel_height + 20),
                     font, 0.6, (0, 255, 255), 2)
         
         # Draw context lines
@@ -462,16 +446,16 @@ class ModelPipeline:
             raise RuntimeError("Camera not initialized.")
         
         enabled = [m for m in self.models if m.enabled]
-        print("\n🎥 Active models:", ", ".join([m.name for m in enabled]))
-        print(f"📸 Snapshot & Gemini analysis interval: {self.snapshot_interval}s")
-        print(f"🔄 Model prediction frequency: Every {self.frame_skip} frames (~{30/self.frame_skip:.1f} times/sec at 30fps)")
-        print(f"📁 Snapshot directory: {self.snapshot_dir}")
+        print("\n Active models:", ", ".join([m.name for m in enabled]))
+        print(f" Snapshot & Gemini analysis interval: {self.snapshot_interval}s")
+        print(f" Model prediction frequency: Every {self.frame_skip} frames (~{30/self.frame_skip:.1f} times/sec at 30fps)")
+        print(f" Snapshot directory: {self.snapshot_dir}")
         print("Press 'q' to quit\n")
         
         while True:
             ret, frame = self.cap.read()
             if not ret:
-                print("❌ Frame not captured, exiting...")
+                print(" Frame not captured, exiting...")
                 break
             
             self.frame_count += 1
@@ -485,9 +469,9 @@ class ModelPipeline:
                         pred = m.predict(frame)
                         self.cached_predictions[m.name] = pred
                     except Exception as e:
-                        print(f"⚠️ Error in {m.name}: {e}")
+                        print(f" Error in {m.name}: {e}")
             
-            # Check if it's time for snapshot and Gemini analysis
+  
             current_time = time.time()
             if current_time - self.last_snapshot_time >= self.snapshot_interval:
                 self._get_gemini_context(frame)
@@ -500,7 +484,7 @@ class ModelPipeline:
                 try:
                     frame = m.draw(frame, self.cached_predictions[m.name])
                 except Exception as e:
-                    print(f"⚠️ Draw error in {m.name}: {e}")
+                    print(f" Draw error in {m.name}: {e}")
             
             # Draw Gemini context panel
             frame = self._draw_context_panel(frame)
@@ -513,16 +497,15 @@ class ModelPipeline:
         
         self.cap.release()
         cv2.destroyAllWindows()
-        print("🛑 Pipeline closed.")
+        print(" Pipeline closed.")
 
 
 if __name__ == "__main__":
     print("\n🚀 Multi-Model Vision Pipeline with Gemini Display\n")
     
-    # IMPORTANT: Replace with your actual Gemini API key
-    GEMINI_API_KEY = "AIzaSyC4Pzh3_FAmfrKfw85eqrEEs0UanEBJITk"  # Get from https://makersuite.google.com/app/apikey
-    
-    # Initialize pipeline with Gemini integration
+
+    GEMINI_API_KEY = ""  
+
     pipeline = ModelPipeline(
         gemini_api_key=GEMINI_API_KEY,
         snapshot_dir="snapshots"
